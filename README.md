@@ -14,7 +14,7 @@ $ npm install @e9x/simple-socks
 
 ## Debugging
 
-This package will not log errors caught in callbacks such as `authenticate`, `filter`, and `connect`. This may lead to unexpected errors being caught and not being logged for the developer. This may lead to confusion and unintended closing of the SOCKS client. To help debug, this package uses [debug](https://www.npmjs.com/package/debug). 
+This package will not log errors caught in callbacks such as `authenticate`, `filter`, and `connect` by default. This may lead to unexpected errors being caught and causing clients to disconnect. This may lead to confusion and unintended closing of the SOCKS client. To help debug, this package uses [debug](https://www.npmjs.com/package/debug). 
 
 Set the `DEBUG` environment variable to `simple-socks` in your terminal to see debug messages from this package.
 
