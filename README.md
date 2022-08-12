@@ -8,8 +8,8 @@ This is a clone of https://github.com/brozeph/simple-socks. This project would n
 
 ## Installation
 
-```
-npm install @e9x/simple-socks
+```sh
+$ npm install @e9x/simple-socks
 ```
 
 ## Example Usage
@@ -30,57 +30,57 @@ server.listen(1080);
 
 For a SOCKS5 server that does not require authentication, look at [examples/createServer.mjs](examples/createServer.js):
 
-```bash
-node examples/createServer.mjs
+```sh
+$ node examples/createServer.mjs
 ```
 
 In a separate terminal window:
 
-```bash
-curl http://www.google.com --socks5 127.0.0.1:1080
+```sh
+$ curl http://www.google.com --socks5 127.0.0.1:1080
 ```
 
 #### Username/Password Authentication
 
 For a SOCKS5 server that requires username/password authentication, look at [examples/createServerWithAuthentication.mjs](examples/createServerWithAuthentication.mjs):
 
-```bash
-node examples/createServerWithAuthentication.mjs
+```sh
+$ node examples/createServerWithAuthentication.mjs
 ```
 
 In a separate terminal window:
 
-```bash
-curl http://www.google.com --socks5 127.0.0.1:1080 --proxy-user foo:bar
+```sh
+$ curl http://www.google.com --socks5 127.0.0.1:1080 --proxy-user foo:bar
 ```
 
 #### Connection Filter
 
 For a SOCKS5 server that can perform either origin or destination (or both!) address filtering, look at [examples/createServerFilter.mjs](examples/createServerFilter.mjs):
 
-```bash
-node examples/createServerFilter.mjs
+```sh
+$ node examples/createServerFilter.mjs
 ```
 
 In a separate terminal window:
 
-```bash
-curl http://www.github.com --socks5 127.0.0.1:1080 # allowed
-curl http://www.google.com --socks5 127.0.0.1:1080 # denied
+```sh
+$ curl http://www.github.com --socks5 127.0.0.1:1080 # allowed
+$ curl http://www.google.com --socks5 127.0.0.1:1080 # denied
 ```
 
 #### Chained Socks Proxies
 
 The underlying API to connect to the destination is exposed to allow for flexibility. As a result, you can use slightly higher level APIs to establish a connection to the destination. For a SOCKS5 server will connect to a locally hosted TOR socks proxy, look at [examples/createServerConnect.mjs](examples/createServerConnect.mjs):
 
-```bash
-node examples/createServerConnect.mjs
+```sh
+$ node examples/createServerConnect.mjs
 ```
 
 In a separate terminal window:
 
-```bash
-curl https://myip.wtf/json --socks5 127.0.0.1:1080
+```$
+$ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 ```
 
 ```json
