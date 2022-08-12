@@ -109,6 +109,8 @@ This method accepts an optional `options` argument:
 - `options.filter` - A callback for connection filtering
 - `options.connect` - A callback for low-level connecting
 
+Unlike simple-socks, the callbacks are based on modern promises.
+
 #### authentication
 
 To make the socks5 server require username/password authentication, supply a function callback in the options as follows:
