@@ -183,7 +183,7 @@ You must return a promise. The promise resolving indicates the connection was ac
 Allows you to control the flow of connecting to the remote.
 
 ```js
-import { createProxyServer } from '../dist/index.js';
+import { createProxyServer } from '@e9x/simple-socks';
 import { SocksClient } from 'socks';
 
 const server = createProxyServer({
@@ -222,7 +222,7 @@ You must return a promise. The promise resolving indicates the connection was ac
 Method that will wait for a socket to connect to help use unconnected sockets as the resolution for [connect](#connect):
 
 ```js
-import { createProxyServer, waitForConnect } from '../dist/index.js';
+import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
 import { connect } from 'net';
 
 const server = createProxyServer({
