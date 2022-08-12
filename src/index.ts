@@ -17,8 +17,7 @@ const LENGTH_RFC_1928_ATYP = 4;
 
 /**
  *
- * @param socket Socket that emits the `connect` event upon connection, and the `error` event upon failure. Socket must be in the connecting state and not already connected.
- * @returns
+ * @param socket Socket that emits the `connect` event upon connection, and the `error` event upon failure. Socket must be in the connecting state and not already connected. The promise will resolve once the socket is connected and will reject if an error occurs before a connection is established.
  */
 export const waitForConnect = <T extends net.Socket>(socket: T) =>
 	new Promise<void>((resolve, reject) => {
