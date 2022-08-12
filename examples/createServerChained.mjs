@@ -3,7 +3,6 @@ import { SocksClient } from 'socks';
 
 const server = createProxyServer({
 	async connect(port, host) {
-		console.log(port, host);
 		// connect to TOR socks proxy
 		const { socket } = await SocksClient.createConnection({
 			proxy: {
