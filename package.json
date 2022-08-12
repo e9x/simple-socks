@@ -3,8 +3,8 @@
 	"version": "3.1.0",
 	"description": "proxies requests",
 	"type": "commonjs",
-	"main": "src/socks5.js",
-	"engine": "node >= 16.0",
+	"main": "dist/index.js",
+	"engine": "node >= 12",
 	"scripts": {
 		"build": "tsc",
 		"build:watch": "tsc --watch"
