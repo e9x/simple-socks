@@ -137,6 +137,8 @@ This method accepts an optional `options` argument:
 
 Unlike simple-socks, the callbacks are based on modern promises.
 
+The return value is equivalent to [net.Server](https://nodejs.org/dist/latest-v16.x/docs/api/net.html#class-netserver) with a pre-defined listener for `connection`.
+
 #### authentication
 
 To make the socks5 server require username/password authentication, supply a function callback in the options as follows:
