@@ -1,3 +1,16 @@
+@e9x/simple-socks:
+
+# v1.0.0-beta.0 - 2022/08/11
+
+- Port to TypeScript
+- Use promises for callback results
+- Create `connect` callback
+- Rename `connectionFilter` to `filter`
+- Add `waitForConnect` method
+- Rename `createServer` method to `createProxyServer`
+
+simple-socks:
+
 # v3.1.0 - 2022/08/08
 
 - Fixed RFC version constant (fix by @e9x)
