@@ -215,7 +215,7 @@ The `connect` callback accepts three arguments:
 
 For an example, see [examples/createServerConnect.js](examples/createServerFilter.js).
 
-You must return a promise. The promise resolving indicates the connection was accepted **and is CONNECTED**. The promsie rejecting indicates the connection was rejected **and was NOT connected**. You can wrap an unconnected socket in [waitForConnect](#waitforconnect) to make it compatible with this callback.
+You must return a promise. The promise resolving indicates the connection was accepted **and is CONNECTED**. The promsie rejecting indicates the connection was rejected **and was NOT connected**. You can utilize [waitForConnect](#waitforconnect) to wait for the socket to connect/throw before resolving to make it compatible with this callback.
 
 ### waitForConnect
 
@@ -234,6 +234,26 @@ const server = createProxyServer({
 
 		return socket;
 	},
+});
+```
+
+(non-async)
+```js
+import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
+import { connect } from 'net';
+
+const server = createProxyServer({
+	connect: (port, host) => new Promise((resolve, reject) => {
+		// create unconnected socket
+		const socket = connect(port, host);
+
+		waitForConnect(socket).then(() => {
+			resolve(socket);
+		}).catch(err => {
+			// only err should be passed to reject
+			reject(err);
+		});
+	}),
 });
 ```
 
