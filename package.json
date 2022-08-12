@@ -1,46 +1,51 @@
 {
-  "name": "simple-socks",
-  "version": "3.1.0",
-  "description": "proxies requests ",
-  "type": "module",
-  "main": "src/socks5.js",
-  "engine": "node >= 16.0",
-  "scripts": {
-    "lint": "gulp lint",
-    "test": "gulp lint"
-  },
-  "author": "https://github.com/brozeph",
-  "contributors": [
-    "https://github.com/pronskiy",
-    "https://github.com/fabiensk",
-    "https://github.com/lanius-collaris"
-  ],
-  "license": "MIT",
-  "keywords": [
-    "socks",
-    "socks5",
-    "socksv5",
-    "rfc 1928",
-    "rfc1928",
-    "rfc 1929",
-    "rfc1929",
-    "socks server",
-    "socks5 server",
-    "socksv5 server"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/brozeph/simple-socks.git"
-  },
-  "bugs": {
-    "url": "http://github.com/brozeph/simple-socks/issues"
-  },
-  "devDependencies": {
-    "eslint": "^8.21.0",
-    "gulp": "^4.0.2",
-    "gulp-eslint": "^6.0.0"
-  },
-  "dependencies": {
-    "binary": "^0.3.0"
-  }
+	"name": "@e9x/simple-socks",
+	"version": "3.1.0",
+	"description": "proxies requests",
+	"type": "module",
+	"main": "src/socks5.js",
+	"engine": "node >= 16.0",
+	"scripts": {
+		"build": "tsc",
+		"build:watch": "tsc --watch"
+	},
+	"author": "https://github.com/e9x",
+	"contributors": [
+		"https://github.com/brozeph",
+		"https://github.com/pronskiy",
+		"https://github.com/fabiensk",
+		"https://github.com/lanius-collaris"
+	],
+	"license": "MIT",
+	"keywords": [
+		"socks",
+		"socks5",
+		"socksv5",
+		"rfc 1928",
+		"rfc1928",
+		"rfc 1929",
+		"rfc1929",
+		"socks server",
+		"socks5 server",
+		"socksv5 server",
+		"typescript"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/e9x/simple-socks.git"
+	},
+	"bugs": {
+		"url": "http://github.com/e9x/simple-socks/issues"
+	},
+	"devDependencies": {
+		"@ianvs/prettier-plugin-sort-imports": "^3.4.2",
+		"@types/node": "^18.7.1",
+		"@typescript-eslint/eslint-plugin": "^5.33.0",
+		"eslint": "^8.21.0",
+		"prettier": "^2.7.1",
+		"typescript": "^4.7.4"
+	},
+	"dependencies": {
+		"binary": "^0.3.0"
+	}
 }
