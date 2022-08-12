@@ -265,4 +265,4 @@ The socket must not already be connected when calling this method. If it is, ret
 
 ## Events
 
-Unlike simple-socks, events have been removed due to the unlikeliness of them being used and their nature of wasting resources. Specifically the proxyData event is the culprit of poor speeds. It may be argued the events being fired constantly are a waste of resources too. Use the hooks provided in options instead.
+Unlike simple-socks, events have been removed due to the unlikeliness of them being used and their nature of wasting resources. Specifically the proxyData event is the culprit of poor speeds because it causes the stream to buffer, adding overhead to streaming data from the client to the remote. It may be argued the events being fired constantly are a waste of resources too. Use the hooks provided in options instead.
