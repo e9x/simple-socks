@@ -83,8 +83,10 @@ In a separate terminal window:
 curl https://myip.wtf/json --socks5 127.0.0.1:1080
 ```
 
-```
-    "TorExit": true,
+```json
+{
+    "YourF****ingTorExit": true,
+}
 ```
 
 ## Methods
