@@ -95,7 +95,7 @@ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 
 Factory method that creates an instance of a SOCKS5 proxy server:
 
-```javascript
+```js
 import { createProxyServer } from '@e9x/simple-socks';
 
 const server = createProxyServer();
@@ -215,7 +215,33 @@ The `connect` callback accepts three arguments:
 
 For an example, see [examples/createServerConnect.js](examples/createServerFilter.js).
 
-You must return a promise. The promise resolving indicates the connection was accepted. The promsie rejecting indicates the connection was rejected.
+You must return a promise. The promise resolving indicates the connection was accepted **and is CONNECTED**. The promsie rejecting indicates the connection was rejected **and was NOT connected**. You can wrap an unconnected socket in [waitForConnect](#waitforconnect) to make it compatible with this callback.
+
+### waitForConnect
+
+Method that will wait for a socket to connect to help use unconnected sockets as the resolution for [connect](#connect):
+
+```js
+import { createProxyServer, waitForConnect } from '../dist/index.js';
+import { connect } from 'net';
+
+const server = createProxyServer({
+	async connect(port, host) {
+		// create unconnected socket
+		const socket = connect(port, host);
+
+		await waitForConnect(socket);
+
+		return socket;
+	},
+});
+```
+
+The `waitForConnect` method accepts one argument:
+
+- socket - the socket to the destination
+
+The socket must not already be connected when calling this method. If it is, return the socket instead of calling this method. This method will throw an error if the socket could not connect. This error should be caught in the stack that called options.connect. You should not catch this error and return a different one because it contains an error code that is used to determine how the socket was ended.
 
 ## Events
 
