@@ -150,15 +150,15 @@ Allows you to filter incoming connections, based on either origin and/or destina
 import { createProxyServer } from '@e9x/simple-socks';
 
 const server = createProxyServer({
-	filter: (destination, origin) => new Promise((resolve, reject) => {
-		if (origin.address === '127.0.0.1') {
-			console.log('denying access from %s:%s', origin.address, origin.port);
+	filter: (destinationPort, destinationAddress, socket) => new Promise((resolve, reject) => {
+		if (socket.remoteAddress === '127.0.0.1') {
+			console.log('denying access from %s:%s', socket.remoteAddress, socket.remotePort);
 
 			return reject();
 		}
 
-		if (destination.address === '10.0.0.1') {
-			console.log('denying access to %s:%s', remote.address, remote.port);
+		if (destinationAddress === '10.0.0.1') {
+			console.log('denying access to %s:%s', destinationAddress, destinationPort);
 
 			return reject();
 		}

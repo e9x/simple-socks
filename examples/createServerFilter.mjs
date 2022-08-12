@@ -2,7 +2,7 @@ import { createProxyServer } from '../dist/index.js';
 import dns from 'dns';
 
 const server = createProxyServer({
-	filter: (destinationAddress, destinationPort, socket) =>
+	filter: (destinationPort, destinationAddress, socket) =>
 		new Promise((resolve, reject) => {
 			console.log('Attempting to connect to...');
 			console.log({ address: destinationAddress, port: destinationPort });

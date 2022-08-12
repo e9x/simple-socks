@@ -3,7 +3,7 @@ import dns from 'dns/promises';
 import ipaddr from 'ipaddr.js';
 
 const server = createProxyServer({
-	async filter(destinationAddress, destinationPort, socket) {
+	async filter(destinationPort, destinationAddress, socket) {
 		const addresses = await dns.resolve(destinationAddress);
 
 		const ip = ipaddr.parse(addresses[0]);
