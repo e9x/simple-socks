@@ -209,12 +209,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 						// perform connection
 						try {
 							if (options.filter)
-								await options.filter(
-									// destination
-									args.dst.addr,
-									args.dst.port,
-									socket
-								);
+								await options.filter(args.dst.port, args.dst.addr, socket);
 
 							try {
 								const destination = await options.connect(
