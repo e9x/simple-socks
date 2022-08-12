@@ -16,7 +16,9 @@
 		"https://github.com/fabiensk",
 		"https://github.com/lanius-collaris"
 	],
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"license": "MIT",
 	"keywords": [
 		"socks",
@@ -48,5 +50,8 @@
 	},
 	"dependencies": {
 		"binary": "^0.3.0"
+	},
+	"optionalDependencies": {
+		"socks": "^2.7.0"
 	}
 }
