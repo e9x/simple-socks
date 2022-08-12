@@ -2,7 +2,7 @@
 	"name": "@e9x/simple-socks",
 	"version": "3.1.0",
 	"description": "proxies requests",
-	"type": "module",
+	"type": "commonjs",
 	"main": "src/socks5.js",
 	"engine": "node >= 16.0",
 	"scripts": {
@@ -16,6 +16,7 @@
 		"https://github.com/fabiensk",
 		"https://github.com/lanius-collaris"
 	],
+	"files": ["dist"],
 	"license": "MIT",
 	"keywords": [
 		"socks",

@@ -3,9 +3,10 @@
 		"types": ["node"],
 		"lib": ["ESNext", "DOM"],
 		"target": "ESNext",
-		"module": "ESNext",
+		"module": "CommonJS",
 		"outDir": "dist",
 		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
 		"moduleResolution": "node",
 		"declaration": true
 	}
