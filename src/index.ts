@@ -12,25 +12,55 @@ import net from 'net';
 
 const LENGTH_RFC_1928_ATYP = 4;
 
+/**
+ *
+ * @param socket Socket that emits the `connect` event upon connection, and the `error` event upon failure. Socket must be in the connecting state and not already connected.
+ * @returns
+ */
+export const waitForConnect = <T extends net.Socket>(socket: T) =>
+	new Promise<void>((resolve, reject) => {
+		const connectHandler = () => {
+			socket.removeListener('error', errorHandler);
+			resolve();
+		};
+
+		const errorHandler = (err: unknown) => {
+			socket.removeListener('connect', connectHandler);
+			reject(err);
+		};
+
+		socket.once('error', errorHandler);
+		socket.once('connect', connectHandler);
+	});
+
 interface ProxyServerOptions {
+	/**
+	 * @returns A resolved promise indicates the credentials are correct and the proxy will proceed. A rejected promise indicates the credentials are incorrect and will result in the connection being closed.
+	 */
 	authenticate?(
 		username: string,
 		password: string,
-		socket: net.Socket,
-		accept: () => void,
-		deny: () => void
-	): void;
-	connectionFilter?(
-		destination: { address: string; port: number },
-		origin: { address: string; port: number },
-		accept: () => void,
-		deny: () => void
-	): void;
-	createConnection(
-		port: number,
-		host: string,
 		socket: net.Socket
-	): net.Socket | Promise<net.Socket>;
+	): Promise<void>;
+	/**
+	 * Determine if the connection to the destination is allowed.
+	 * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
+	 */
+	filter?(port: number, host: string, socket: net.Socket): Promise<void>;
+	/**
+	 * This is intended for slightly higher APIs.
+	 * What will work:
+	 * - Chaining socks proxies (Server connects to internal socks proxy eg Tor)
+	 * - Redirecting to more secure services (80 -> 443, wrapped in tls.connect)
+	 * What will not work:
+	 * - Wrapping sockets in TLS to services that don't support TLS
+	 * @returns You must bind the `connect` and `error` events to resolve/reject. Once the promise is resolved, it is assumed that the socket is connected. Returning a normal socket will assume it is not connected already. If your API provides the `connect` and `error` event, you can use our built-in promise wrapper `waitForConnect`.
+	 */
+	connect(port: number, host: string, socket: net.Socket): Promise<net.Socket>;
+}
+
+function isConnectErr(err: { code?: string } | void): err is { code: string } {
+	return err && typeof err.code === 'string';
 }
 
 /**
@@ -53,12 +83,8 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * +----+------+----------+------+----------+
 		 * | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 		 * +----+------+----------+------+----------+
-		 *
-		 *
-		 * @param {Buffer} buffer - a buffer
-		 * @returns {undefined}
 		 **/
-		const authenticate = (buffer) => {
+		const authenticate = (buffer: Buffer) => {
 			binary
 				.stream(buffer)
 				.word8('ver')
@@ -66,7 +92,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 				.buffer('uname', 'ulen')
 				.word8('plen')
 				.buffer('passwd', 'plen')
-				.tap((args) => {
+				.tap(async (args) => {
 					// capture the raw buffer
 					args.requestBuffer = buffer;
 
@@ -76,27 +102,28 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 					}
 
 					// perform authentication
-					options.authenticate(
-						args.uname.toString(),
-						args.passwd.toString(),
-						socket,
-						() => {
-							// respond with success...
-							const responseBuffer = Buffer.allocUnsafe(2);
-							responseBuffer[0] = RFC_1929_VERSION;
-							responseBuffer[1] = RFC_1929_REPLIES.SUCCEEDED;
+					// options.authenticate is guaranteed to exist, connections providing authentication when options.authenticate doesnt exist will be terminated
+					try {
+						await options.authenticate(
+							args.uname.toString(),
+							args.passwd.toString(),
+							socket
+						);
 
-							// respond then listen for cmd and dst info
-							socket.write(responseBuffer, () => {
-								// now listen for more details
-								socket.once('data', connect);
-							});
-						},
-						() => {
-							// respond with auth failure
-							return end(RFC_1929_REPLIES.GENERAL_FAILURE, args);
-						}
-					);
+						// respond with success...
+						const responseBuffer = Buffer.allocUnsafe(2);
+						responseBuffer[0] = RFC_1929_VERSION;
+						responseBuffer[1] = RFC_1929_REPLIES.SUCCEEDED;
+
+						// respond then listen for cmd and dst info
+						socket.write(responseBuffer, () => {
+							// now listen for more details
+							socket.once('data', connect);
+						});
+					} catch (err) {
+						// respond with auth failure
+						end(RFC_1929_REPLIES.GENERAL_FAILURE, args);
+					}
 				});
 		};
 
@@ -106,7 +133,6 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * +----+-----+-------+------+----------+----------+
 		 * | 1  |  1  | X'00' |  1   | Variable |    2     |
 		 * +----+-----+-------+------+----------+----------+
-		 *
 		 **/
 		const connect = (buffer: Buffer) => {
 			const binaryStream = binary.stream(buffer);
@@ -178,72 +204,50 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 					}
 				})
 				.word16bu('dst.port')
-				.tap((args) => {
+				.tap(async (args) => {
 					if (args.cmd === RFC_1928_COMMANDS.CONNECT) {
-						let connectionFilter = options.connectionFilter;
-
-						// if no connection filter is provided, stub one
-						if (!connectionFilter || typeof connectionFilter !== 'function')
-							connectionFilter = (destination, origin, callback) =>
-								setImmediate(callback);
-
 						// perform connection
-						return connectionFilter(
-							// destination
-							{
-								address: args.dst.addr,
-								port: args.dst.port,
-							},
-							// origin
-							{
-								address: socket.remoteAddress,
-								port: socket.remotePort,
-							},
-							() => {
-								const connect = (destination: net.Socket) => {
-									// prepare a success response
-									const responseBuffer = Buffer.alloc(
-										args.requestBuffer.length
-									);
-									args.requestBuffer.copy(responseBuffer);
-									responseBuffer[1] = RFC_1928_REPLIES.SUCCEEDED;
+						try {
+							if (options.filter)
+								await options.filter(
+									// destination
+									args.dst.addr,
+									args.dst.port,
+									socket
+								);
 
-									// write acknowledgement to client...
-									socket.write(responseBuffer, () => {
-										// listen for data bi-directionally
-										destination.pipe(socket);
-										socket.pipe(destination);
-									});
-								};
-
-								const error = (err: Error & { code?: string }) => {
-									if (err.code && err.code === 'EADDRNOTAVAIL')
-										return end(RFC_1928_REPLIES.HOST_UNREACHABLE, args);
-
-									if (err.code && err.code === 'ECONNREFUSED')
-										return end(RFC_1928_REPLIES.CONNECTION_REFUSED, args);
-
-									return end(RFC_1928_REPLIES.NETWORK_UNREACHABLE, args);
-								};
-
-								const destinationPromise = options.createConnection(
+							try {
+								const destination = await options.connect(
 									args.dst.port,
 									args.dst.addr,
 									socket
 								);
 
-								if (destinationPromise instanceof Promise) {
-									destinationPromise.then(connect).catch(error);
-								} else {
-									destinationPromise.on('connect', connect);
-									destinationPromise.on('error', error);
+								// prepare a success response
+								const responseBuffer = Buffer.alloc(args.requestBuffer.length);
+								args.requestBuffer.copy(responseBuffer);
+								responseBuffer[1] = RFC_1928_REPLIES.SUCCEEDED;
+
+								// write acknowledgement to client...
+								socket.write(responseBuffer, () => {
+									// listen for data bi-directionally
+									destination.pipe(socket);
+									socket.pipe(destination);
+								});
+							} catch (err) {
+								if (isConnectErr(err)) {
+									if (err.code === 'EADDRNOTAVAIL')
+										return end(RFC_1928_REPLIES.HOST_UNREACHABLE, args);
+									else if (err.code === 'ECONNREFUSED')
+										return end(RFC_1928_REPLIES.CONNECTION_REFUSED, args);
 								}
-							},
-							() => {
-								// respond with failure
-								return end(RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED, args);
+
+								return end(RFC_1928_REPLIES.NETWORK_UNREACHABLE, args);
 							}
-						);
+						} catch (err) {
+							// respond with failure
+							return end(RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED, args);
+						}
 					} else {
 						// bind and udp associate commands
 						return end(RFC_1928_REPLIES.SUCCEEDED, args);
@@ -358,8 +362,14 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 export function createProxyServer(
 	partialOptions: Partial<ProxyServerOptions> = {}
 ): net.Server {
-	partialOptions.createConnection ||= (port, host) =>
-		net.createConnection(port, host);
+	// stub connect
+	if (!partialOptions.connect)
+		partialOptions.connect = async (port, host) => {
+			const socket = net.connect(port, host);
+			// let the server catch any errors
+			await waitForConnect(socket);
+			return socket;
+		};
 
 	const server = net.createServer();
 
