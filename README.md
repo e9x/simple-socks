@@ -12,6 +12,12 @@ This is a clone of https://github.com/brozeph/simple-socks. This project would n
 $ npm install @e9x/simple-socks
 ```
 
+## Debugging
+
+This package will not log errors caught in callbacks such as `authenticate`, `filter`, and `connect`. This may lead to unexpected errors being caught and not being logged for the developer. This may lead to confusion and unintended closing of the SOCKS client. To help debug, this package uses [debug](https://www.npmjs.com/package/debug). 
+
+Set the `DEBUG` environment variable in your terminal to see debug messages from this package.
+
 ## Example Usage
 
 In the [examples](examples/) folder exists two examples, one that requires no authentication and one that requires username/password authentication. Below is an example with no authentication:

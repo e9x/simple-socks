@@ -8,7 +8,10 @@ import {
 	RFC_1929_VERSION,
 } from './constants.js';
 import binary from 'binary';
+import debug from 'debug';
 import net from 'net';
+
+const debugOutput = debug('simple-socks');
 
 const LENGTH_RFC_1928_ATYP = 4;
 
@@ -121,6 +124,8 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 							socket.once('data', connect);
 						});
 					} catch (err) {
+						if (err) debugOutput('Caught authentication failure:', err);
+
 						// respond with auth failure
 						end(RFC_1929_REPLIES.GENERAL_FAILURE, args);
 					}
@@ -230,6 +235,8 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 									socket.pipe(destination);
 								});
 							} catch (err) {
+								if (err) debugOutput('Caught connect callback failure:', err);
+
 								if (isConnectErr(err)) {
 									if (err.code === 'EADDRNOTAVAIL')
 										return end(RFC_1928_REPLIES.HOST_UNREACHABLE, args);
@@ -240,6 +247,8 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 								return end(RFC_1928_REPLIES.NETWORK_UNREACHABLE, args);
 							}
 						} catch (err) {
+							if (err) debugOutput('Caught filter callback failure:', err);
+
 							// respond with failure
 							return end(RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED, args);
 						}
@@ -274,7 +283,9 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 			// respond then end the connection
 			try {
 				socket.end(responseBuffer);
-			} catch (ex) {
+			} catch (err) {
+				debugOutput('Failure half-closing the client. Destroying stream...');
+
 				socket.destroy();
 			}
 		};
