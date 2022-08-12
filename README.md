@@ -109,7 +109,7 @@ $ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 
 ```json
 {
-    "YourF****ingTorExit": true,
+    "YourF***ingTorExit": true,
 }
 ```
 
