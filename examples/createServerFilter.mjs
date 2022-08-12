@@ -1,5 +1,6 @@
 import { createProxyServer } from '../dist/index.js';
 import dns from 'dns';
+import ipaddr from 'ipaddr.js';
 
 const server = createProxyServer({
 	filter: (destinationPort, destinationAddress, socket) =>
@@ -9,6 +10,24 @@ const server = createProxyServer({
 			console.log();
 			console.log('Inbound origin of request is...');
 			console.log({ address: socket.remoteAddress, port: socket.remotePort });
+
+			const checkHostname = (hostname) => {
+				if (!/github/.test(hostname)) {
+					console.log(
+						'Not allowing connection to %s:%s',
+						destinationAddress,
+						destinationPort
+					);
+
+					return reject();
+				}
+
+				return resolve();
+			};
+
+			// prevent looking up ip address
+			if (!ipaddr.isValid(destinationAddress))
+				return checkHostname(destinationAddress);
 
 			return dns.reverse(destinationAddress, (err, hostnames) => {
 				if (

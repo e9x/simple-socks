@@ -4,7 +4,9 @@ import ipaddr from 'ipaddr.js';
 
 const server = createProxyServer({
 	async filter(destinationPort, destinationAddress, socket) {
-		const addresses = await dns.resolve(destinationAddress);
+		const addresses = ipaddr.isValid(destinationAddress)
+			? [destinationAddress]
+			: await dns.resolve(destinationAddress);
 
 		const ip = ipaddr.parse(addresses[0]);
 
