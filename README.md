@@ -52,7 +52,7 @@ server.listen(1080);
 
 #### No Authentication
 
-For a SOCKS5 server that does not require authentication, look at [examples/createServer.mjs](examples/createServer.js):
+For a SOCKS5 server that does not require authentication, look at [examples/createServer.mjs](examples/createServer.mjs):
 
 ```sh
 $ node examples/createServer.mjs
@@ -200,7 +200,7 @@ The `filter` callback accepts three arguments:
 - address - the TCP address of the destination server
 - socket - the socket for the client connection
 
-For an example, see [examples/createServerFilter.js](examples/createServerFilter.js).
+For an example, see [examples/createServerFilter.mjs](examples/createServerFilter.mjs).
 
 You must return a promise. The promise resolving indicates the connection was accepted. The promsie rejecting indicates the connection was rejected.
 
@@ -239,7 +239,7 @@ The `connect` callback accepts three arguments:
 - address - the TCP address of the destination server
 - socket - the socket for the client connection
 
-For an example, see [examples/createServerConnect.js](examples/createServerFilter.js).
+For an example, see [examples/createServerConnect.mjs](examples/createServerFilter.mjs).
 
 You must return a promise. The promise resolving indicates the connection was accepted **and is CONNECTED**. The promsie rejecting indicates the connection was rejected **and was NOT connected**. You can utilize [waitForConnect](#waitforconnect) to wait for the socket to connect/throw before resolving to make it compatible with this callback.
 
