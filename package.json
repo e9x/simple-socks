@@ -1,6 +1,6 @@
 {
 	"name": "@e9x/simple-socks",
-	"version": "1.0.0-beta.0",
+	"version": "1.0.0-beta.1",
 	"description": "SOCKS proxy server written in TypeScript",
 	"type": "commonjs",
 	"main": "dist/index.js",
