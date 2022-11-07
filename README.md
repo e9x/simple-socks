@@ -2,7 +2,7 @@
 
 Creates a simple SOCKS5 server and gives you control over the flow (filter, auth, protocol).
 
-This is a clone of https://github.com/brozeph/simple-socks. This project would not be possible without their contributions to simple-socks.
+This is a clone of https://github.com/brozeph/simple-socks.
 
 <a href="https://www.npmjs.com/package/@e9x/simple-socks"><img src="https://img.shields.io/npm/v/@e9x/simple-socks.svg?maxAge=3600" alt="npm version" /></a>
 
