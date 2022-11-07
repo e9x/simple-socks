@@ -14,7 +14,7 @@ $ npm install @e9x/simple-socks
 
 ## Debugging
 
-This package will not log errors caught in callbacks such as `authenticate`, `filter`, and `connect` by default. This may lead to unexpected errors being caught and causing clients to disconnect. This may lead to confusion and unintended closing of the SOCKS client. To help debug, this package uses [debug](https://www.npmjs.com/package/debug). 
+This package will not log errors caught in callbacks such as `authenticate`, `filter`, and `connect` by default. This may lead to unexpected errors being caught and causing clients to disconnect. This may lead to confusion and unintended closing of the SOCKS client. To help debug, this package uses [debug](https://www.npmjs.com/package/debug).
 
 Set the `DEBUG` environment variable to `simple-socks` in your terminal to see debug messages from this package.
 
@@ -109,7 +109,7 @@ $ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 
 ```json
 {
-    "YourF***ingTorExit": true,
+	"YourF***ingTorExit": true
 }
 ```
 
@@ -147,13 +147,14 @@ To make the socks5 server require username/password authentication, supply a fun
 import { createProxyServer } from '@e9x/simple-socks';
 
 const server = createProxyServer({
-	authenticate: (username, password, socket) => new Promise((resolve, reject) => {
-		if (username === 'foo' && password === 'bar') {
-			return resolve();
-		}
+	authenticate: (username, password, socket) =>
+		new Promise((resolve, reject) => {
+			if (username === 'foo' && password === 'bar') {
+				return resolve();
+			}
 
-		return reject();
-	}),
+			return reject();
+		}),
 });
 
 // begin listening and require user/pass authentication
@@ -176,21 +177,30 @@ Allows you to filter incoming connections, based on either origin and/or destina
 import { createProxyServer } from '@e9x/simple-socks';
 
 const server = createProxyServer({
-	filter: (destinationPort, destinationAddress, socket) => new Promise((resolve, reject) => {
-		if (socket.remoteAddress === '127.0.0.1') {
-			console.log('denying access from %s:%s', socket.remoteAddress, socket.remotePort);
+	filter: (destinationPort, destinationAddress, socket) =>
+		new Promise((resolve, reject) => {
+			if (socket.remoteAddress === '127.0.0.1') {
+				console.log(
+					'denying access from %s:%s',
+					socket.remoteAddress,
+					socket.remotePort
+				);
 
-			return reject();
-		}
+				return reject();
+			}
 
-		if (destinationAddress === '10.0.0.1') {
-			console.log('denying access to %s:%s', destinationAddress, destinationPort);
+			if (destinationAddress === '10.0.0.1') {
+				console.log(
+					'denying access to %s:%s',
+					destinationAddress,
+					destinationPort
+				);
 
-			return reject();
-		}
+				return reject();
+			}
 
-		return resolve();
-	}),
+			return resolve();
+		}),
 });
 ```
 
@@ -264,22 +274,26 @@ const server = createProxyServer({
 ```
 
 (non-async)
+
 ```js
 import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
 import { connect } from 'net';
 
 const server = createProxyServer({
-	connect: (port, host) => new Promise((resolve, reject) => {
-		// create unconnected socket
-		const socket = connect(port, host);
+	connect: (port, host) =>
+		new Promise((resolve, reject) => {
+			// create unconnected socket
+			const socket = connect(port, host);
 
-		waitForConnect(socket).then(() => {
-			resolve(socket);
-		}).catch(err => {
-			// only err should be passed to reject
-			reject(err);
-		});
-	}),
+			waitForConnect(socket)
+				.then(() => {
+					resolve(socket);
+				})
+				.catch((err) => {
+					// only err should be passed to reject
+					reject(err);
+				});
+		}),
 });
 ```
 
