@@ -91,7 +91,6 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 **/
 		const authenticate = (buffer: Buffer) => {
 			stream<{
-				requestBuffer: any;
 				ver?: any;
 				uname?: any;
 				passwd?: any;
@@ -102,12 +101,9 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 				.word8('plen')
 				.buffer('passwd', 'plen')
 				.tap(async (args) => {
-					// capture the raw buffer
-					args.requestBuffer = buffer;
-
 					// verify version is appropriate
 					if (args.ver !== RFC_1929_VERSION) {
-						return end(RFC_1929_REPLIES.GENERAL_FAILURE, args);
+						return end(authenticateReply(RFC_1929_REPLIES.GENERAL_FAILURE));
 					}
 
 					// perform authentication
@@ -120,9 +116,9 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 						);
 
 						// respond with success...
-						const responseBuffer = Buffer.allocUnsafe(2);
-						responseBuffer[0] = RFC_1929_VERSION;
-						responseBuffer[1] = RFC_1929_REPLIES.SUCCEEDED;
+						const responseBuffer = authenticateReply(
+							RFC_1929_REPLIES.SUCCEEDED
+						);
 
 						// respond then listen for cmd and dst info
 						socket.write(responseBuffer, () => {
@@ -133,7 +129,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 						if (err) debugOutput('Caught authentication failure:', err);
 
 						// respond with auth failure
-						end(RFC_1929_REPLIES.GENERAL_FAILURE, args);
+						end(authenticateReply(RFC_1929_REPLIES.GENERAL_FAILURE));
 					}
 				});
 		};
@@ -153,7 +149,6 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 				addr: { buf: Buffer; a: number; b: number; c: number; d: number };
 				// manually set:
 				dst: { addr: string; port: number };
-				requestBuffer: Buffer;
 			}>(buffer);
 
 			binaryStream
@@ -162,12 +157,9 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 				.word8('rsv')
 				.word8('atyp')
 				.tap((args) => {
-					// capture the raw buffer
-					args.requestBuffer = buffer;
-
 					// verify version is appropriate
 					if (args.ver !== RFC_1928_VERSION) {
-						return end(RFC_1928_REPLIES.GENERAL_FAILURE, args);
+						return endConnect(RFC_1928_REPLIES.GENERAL_FAILURE, buffer);
 					}
 
 					// append socket to active sessions
@@ -217,7 +209,10 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 
 						// unsupported address type
 					} else {
-						return end(RFC_1928_REPLIES.ADDRESS_TYPE_NOT_SUPPORTED, args);
+						return endConnect(
+							RFC_1928_REPLIES.ADDRESS_TYPE_NOT_SUPPORTED,
+							buffer
+						);
 					}
 
 					args.dst = { addr, port: 0 };
@@ -237,9 +232,13 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 									socket
 								);
 
+								// we can modify the responseBuffer to inform the client of a new destination IP address and port
+								// but we can also just copy the request to confirm the original IP and port
+								// TODO: add/update a hook to allow changing the IP and port
+
 								// prepare a success response
-								const responseBuffer = Buffer.alloc(args.requestBuffer.length);
-								args.requestBuffer.copy(responseBuffer);
+								const responseBuffer = Buffer.alloc(buffer.length);
+								buffer.copy(responseBuffer);
 								responseBuffer[1] = RFC_1928_REPLIES.SUCCEEDED;
 
 								// write acknowledgement to client...
@@ -253,24 +252,56 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 
 								if (isErrCode(err)) {
 									if (err.code === 'EADDRNOTAVAIL')
-										return end(RFC_1928_REPLIES.HOST_UNREACHABLE, args);
+										return endConnect(
+											RFC_1928_REPLIES.HOST_UNREACHABLE,
+											buffer
+										);
 									else if (err.code === 'ECONNREFUSED')
-										return end(RFC_1928_REPLIES.CONNECTION_REFUSED, args);
+										return endConnect(
+											RFC_1928_REPLIES.CONNECTION_REFUSED,
+											buffer
+										);
 								}
 
-								return end(RFC_1928_REPLIES.NETWORK_UNREACHABLE, args);
+								return endConnect(RFC_1928_REPLIES.NETWORK_UNREACHABLE, buffer);
 							}
 						} catch (err) {
 							if (err) debugOutput('Caught filter callback failure:', err);
 
 							// respond with failure
-							return end(RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED, args);
+							return endConnect(
+								RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED,
+								buffer
+							);
 						}
 					} else {
 						// bind and udp associate commands
-						return end(RFC_1928_REPLIES.SUCCEEDED, args);
+						return endConnect(RFC_1928_REPLIES.SUCCEEDED, buffer);
 					}
 				});
+		};
+
+		const end = (response: Buffer) => {
+			// respond then end the connection
+			try {
+				socket.end(response);
+			} catch (err) {
+				debugOutput('Failure half-closing the client. Destroying stream...');
+
+				socket.destroy();
+			}
+		};
+
+		/**
+		 *
+		 * @param response - reply field
+		 * @returns RFC 1929 authentication reply
+		 */
+		const authenticateReply = (response: number) => {
+			const responseBuffer = Buffer.allocUnsafe(2);
+			responseBuffer[0] = RFC_1929_VERSION;
+			responseBuffer[1] = response;
+			return responseBuffer;
 		};
 
 		/**
@@ -280,18 +311,30 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * | 1  |  1  | X'00' |  1   | Variable |    2     |
 		 * +----+-----+-------+------+----------+----------+
 		 *
-		 * @param response - a buffer representing the response
-		 * @param args to supply to the proxy end event
+		 * @param response - reply field
+		 * @param responseBuffer - a connect buffer to recycle
 		 * @returns
 		 **/
-		const end = (response: number, args: { requestBuffer?: Buffer }) => {
-			// either use the raw buffer (if available) or create a new one
-			const responseBuffer = args.requestBuffer || Buffer.allocUnsafe(2);
+		const endConnect = (response: number, responseBuffer: Buffer) => {
+			if (responseBuffer[0] !== RFC_1928_VERSION)
+				throw new TypeError('Incorrect function');
 
-			if (!args.requestBuffer) {
-				responseBuffer[0] = RFC_1928_VERSION;
+			responseBuffer[1] = response;
+
+			// respond then end the connection
+			try {
+				socket.end(responseBuffer);
+			} catch (err) {
+				debugOutput('Failure half-closing the client. Destroying stream...');
+
+				socket.destroy();
 			}
+		};
 
+		const endHandshake = (response: number) => {
+			// either use the raw buffer (if available) or create a new one
+			const responseBuffer = Buffer.allocUnsafe(2);
+			responseBuffer[0] = RFC_1928_VERSION;
 			responseBuffer[1] = response;
 
 			// respond then end the connection
@@ -313,9 +356,9 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 **/
 		const handshake = (buffer: Buffer) => {
 			stream<{
-				ver?: any;
-				methods?: any;
-				requestBuffer?: Buffer | undefined;
+				ver: number;
+				nmethods: number;
+				methods: Buffer;
 			}>(buffer)
 				.word8('ver')
 				.word8('nmethods')
@@ -323,28 +366,22 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 				.tap((args) => {
 					// verify version is appropriate
 					if (args.ver !== RFC_1928_VERSION) {
-						return end(RFC_1928_REPLIES.GENERAL_FAILURE, args);
+						return endHandshake(RFC_1928_REPLIES.GENERAL_FAILURE);
 					}
 
 					// convert methods buffer to an array
-					const acceptedMethods = [].slice
-						.call(args.methods)
-						.reduce((methods, method) => {
-							methods[method] = true;
-							return methods;
-						}, {} as Record<string, boolean>);
+					const acceptedMethods = [...args.methods];
 
 					const basicAuth = typeof options.authenticate === 'function';
 					let next = connect;
 					const noAuth =
-							!basicAuth &&
-							typeof acceptedMethods[0] !== 'undefined' &&
-							acceptedMethods[0],
-						responseBuffer = Buffer.allocUnsafe(2);
+						!basicAuth &&
+						typeof acceptedMethods.includes(
+							RFC_1928_METHODS.NO_AUTHENTICATION_REQUIRED
+						);
 
-					// form response Buffer
+					const responseBuffer = Buffer.allocUnsafe(2);
 					responseBuffer[0] = RFC_1928_VERSION;
-					responseBuffer[1] = RFC_1928_METHODS.NO_AUTHENTICATION_REQUIRED;
 
 					// check for basic auth configuration
 					if (basicAuth) {
@@ -358,7 +395,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 
 						// basic auth callback not provided and no auth is not supported
 					} else {
-						return end(RFC_1928_METHODS.NO_ACCEPTABLE_METHODS, args);
+						return endHandshake(RFC_1928_METHODS.NO_ACCEPTABLE_METHODS);
 					}
 
 					// respond then listen for cmd and dst info

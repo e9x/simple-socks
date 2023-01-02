@@ -34,7 +34,7 @@ export const RFC_1928_REPLIES = {
 export const RFC_1928_VERSION = 0x05;
 
 export const RFC_1929_REPLIES = {
-	GENERAL_FAILURE: 0xff,
+	GENERAL_FAILURE: 0xff, // not X'00'
 	SUCCEEDED: 0x00,
 };
 
