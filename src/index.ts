@@ -1,4 +1,5 @@
 import {
+	LENGTH_RFC_1928_ATYP,
 	RFC_1928_ATYP,
 	RFC_1928_COMMANDS,
 	RFC_1928_METHODS,
@@ -12,8 +13,6 @@ import debug from 'debug';
 import net from 'net';
 
 const debugOutput = debug('simple-socks');
-
-const LENGTH_RFC_1928_ATYP = 4;
 
 /**
  *

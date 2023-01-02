@@ -4,6 +4,8 @@ export const RFC_1928_ATYP = {
 	IPV6: 0x04,
 };
 
+export const LENGTH_RFC_1928_ATYP = 4;
+
 export const RFC_1928_COMMANDS = {
 	BIND: 0x02,
 	CONNECT: 0x01,
