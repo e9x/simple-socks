@@ -223,7 +223,7 @@ import { createProxyServer } from '@e9x/simple-socks';
 import { SocksClient } from 'socks';
 
 const server = createProxyServer({
-	async connect(port, host) {
+	connect: async (port, host) => {
 		// connect to TOR socks proxy
 		const { socket } = await SocksClient.createConnection({
 			proxy: {
@@ -262,7 +262,7 @@ import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
 import { connect } from 'net';
 
 const server = createProxyServer({
-	async connect(port, host) {
+	connect: async (port, host) => {
 		// create unconnected socket
 		const socket = connect(port, host);
 
