@@ -47,7 +47,7 @@ export interface ProxyServerOptions {
 	 * Determine if the connection to the destination is allowed.
 	 * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
 	 */
-	filter(port: number, host: string, socket: net.Socket): Promise<void>;
+	filter?(port: number, host: string, socket: net.Socket): Promise<void>;
 	/**
 	 * This is intended for slightly higher APIs.
 	 * What will work:
