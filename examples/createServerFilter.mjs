@@ -1,6 +1,6 @@
 import { createProxyServer } from '../dist/index.js';
-import dns from 'dns';
 import ipaddr from 'ipaddr.js';
+import { reverse } from 'node:dns';
 
 const server = createProxyServer({
 	filter: (destinationPort, destinationAddress, socket) =>
@@ -29,7 +29,7 @@ const server = createProxyServer({
 			if (!ipaddr.isValid(destinationAddress))
 				return checkHostname(destinationAddress);
 
-			return dns.reverse(destinationAddress, (err, hostnames) => {
+			return reverse(destinationAddress, (err, hostnames) => {
 				if (
 					err ||
 					!hostnames ||

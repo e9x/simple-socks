@@ -259,7 +259,7 @@ Method that will wait for a socket to connect to help use unconnected sockets as
 
 ```js
 import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
-import { connect } from 'net';
+import { connect } from 'node:net';
 
 const server = createProxyServer({
 	connect: async (port, host) => {
@@ -277,7 +277,7 @@ const server = createProxyServer({
 
 ```js
 import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
-import { connect } from 'net';
+import { connect } from 'node:net';
 
 const server = createProxyServer({
 	connect: (port, host) =>

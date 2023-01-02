@@ -1,12 +1,12 @@
 import { createProxyServer } from '../dist/index.js';
-import dns from 'dns/promises';
 import ipaddr from 'ipaddr.js';
+import { resolve } from 'node:dns/promises';
 
 const server = createProxyServer({
 	async filter(destinationPort, destinationAddress, socket) {
 		const addresses = ipaddr.isValid(destinationAddress)
 			? [destinationAddress]
-			: await dns.resolve(destinationAddress);
+			: await resolve(destinationAddress);
 
 		const ip = ipaddr.parse(addresses[0]);
 

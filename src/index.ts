@@ -10,7 +10,7 @@ import {
 } from './constants.js';
 import { stream } from 'binary';
 import debug from 'debug';
-import net from 'net';
+import net from 'node:net';
 
 const debugOutput = debug('simple-socks');
 
