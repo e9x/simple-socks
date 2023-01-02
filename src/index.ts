@@ -38,7 +38,7 @@ export interface ProxyServerOptions {
 	/**
 	 * @returns A resolved promise indicates the credentials are correct and the proxy will proceed. A rejected promise indicates the credentials are incorrect and will result in the connection being closed.
 	 */
-	authenticate(
+	authenticate?(
 		username: string,
 		password: string,
 		socket: net.Socket
@@ -109,7 +109,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 					// perform authentication
 					// options.authenticate is guaranteed to exist, connections providing authentication when options.authenticate doesnt exist will be terminated
 					try {
-						await options.authenticate(
+						await options.authenticate!(
 							args.uname.toString(),
 							args.passwd.toString(),
 							socket
