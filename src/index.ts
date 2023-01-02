@@ -35,7 +35,7 @@ export const waitForConnect = <T extends net.Socket>(socket: T) =>
 		socket.once('connect', connectHandler);
 	});
 
-interface ProxyServerOptions {
+export interface ProxyServerOptions {
 	/**
 	 * @returns A resolved promise indicates the credentials are correct and the proxy will proceed. A rejected promise indicates the credentials are incorrect and will result in the connection being closed.
 	 */
