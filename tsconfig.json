@@ -8,6 +8,9 @@
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"moduleResolution": "node",
-		"declaration": true
+		"baseUrl": "types",
+		"typeRoots": ["node_modules/@types", "types"],
+		"declaration": true,
+		"strict": true
 	}
 }

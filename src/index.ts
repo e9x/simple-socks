@@ -8,7 +8,7 @@ import {
 	RFC_1929_REPLIES,
 	RFC_1929_VERSION,
 } from './constants.js';
-import binary from 'binary';
+import { stream } from 'binary';
 import debug from 'debug';
 import net from 'net';
 
@@ -38,7 +38,7 @@ export interface ProxyServerOptions {
 	/**
 	 * @returns A resolved promise indicates the credentials are correct and the proxy will proceed. A rejected promise indicates the credentials are incorrect and will result in the connection being closed.
 	 */
-	authenticate?(
+	authenticate(
 		username: string,
 		password: string,
 		socket: net.Socket
@@ -47,7 +47,7 @@ export interface ProxyServerOptions {
 	 * Determine if the connection to the destination is allowed.
 	 * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
 	 */
-	filter?(port: number, host: string, socket: net.Socket): Promise<void>;
+	filter(port: number, host: string, socket: net.Socket): Promise<void>;
 	/**
 	 * This is intended for slightly higher APIs.
 	 * What will work:
@@ -60,8 +60,12 @@ export interface ProxyServerOptions {
 	connect(port: number, host: string, socket: net.Socket): Promise<net.Socket>;
 }
 
-function isConnectErr(err: { code?: string } | void): err is { code: string } {
-	return err && typeof err.code === 'string';
+function isErrCode(err: unknown): err is { code: string } {
+	return (
+		typeof err === 'object' &&
+		err !== null &&
+		typeof (err as { code?: unknown }).code === 'string'
+	);
 }
 
 /**
@@ -86,8 +90,12 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * +----+------+----------+------+----------+
 		 **/
 		const authenticate = (buffer: Buffer) => {
-			binary
-				.stream(buffer)
+			stream<{
+				requestBuffer: any;
+				ver?: any;
+				uname?: any;
+				passwd?: any;
+			}>(buffer)
 				.word8('ver')
 				.word8('ulen')
 				.buffer('uname', 'ulen')
@@ -138,7 +146,15 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * +----+-----+-------+------+----------+----------+
 		 **/
 		const connect = (buffer: Buffer) => {
-			const binaryStream = binary.stream(buffer);
+			const binaryStream = stream<{
+				cmd: number;
+				ver: number;
+				atyp: number;
+				addr: { buf: Buffer; a: number; b: number; c: number; d: number };
+				// manually set:
+				dst: { addr: string; port: number };
+				requestBuffer: Buffer;
+			}>(buffer);
 
 			binaryStream
 				.word8('ver')
@@ -157,15 +173,14 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 					// append socket to active sessions
 					activeSessions.push(socket);
 
-					// create dst
-					args.dst = {};
+					let addr = '';
 
 					// ipv4
 					if (args.atyp === RFC_1928_ATYP.IPV4) {
 						binaryStream
 							.buffer('addr.buf', LENGTH_RFC_1928_ATYP)
 							.tap((args) => {
-								args.dst.addr = [].slice.call(args.addr.buf).join('.');
+								addr = [].slice.call(args.addr.buf).join('.');
 							});
 
 						// domain name
@@ -174,7 +189,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 							.word8('addr.size')
 							.buffer('addr.buf', 'addr.size')
 							.tap((args) => {
-								args.dst.addr = args.addr.buf.toString();
+								addr = args.addr.buf.toString();
 							});
 
 						// ipv6
@@ -185,26 +200,27 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 							.word32be('addr.c')
 							.word32be('addr.d')
 							.tap((args) => {
-								args.dst.addr = [];
+								const parts: string[] = [];
 
 								// extract the parts of the ipv6 address
-								['a', 'b', 'c', 'd'].forEach((part) => {
-									const x: number = args.addr[part];
+								for (const part of ['a', 'b', 'c', 'd']) {
+									const x: number = args.addr[part as 'a' | 'b' | 'c' | 'd'];
 
 									// convert DWORD to two WORD values and append
-									/* eslint no-magic-numbers : 0 */
-									args.dst.addr.push((x >>> 16).toString(16));
-									args.dst.addr.push((x & 0xffff).toString(16));
-								});
+									parts.push((x >>> 16).toString(16));
+									parts.push((x & 0xffff).toString(16));
+								}
 
 								// format ipv6 address as string
-								args.dst.addr = args.dst.addr.join(':');
+								addr = parts.join(':');
 							});
 
 						// unsupported address type
 					} else {
 						return end(RFC_1928_REPLIES.ADDRESS_TYPE_NOT_SUPPORTED, args);
 					}
+
+					args.dst = { addr, port: 0 };
 				})
 				.word16bu('dst.port')
 				.tap(async (args) => {
@@ -235,7 +251,7 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 							} catch (err) {
 								if (err) debugOutput('Caught connect callback failure:', err);
 
-								if (isConnectErr(err)) {
+								if (isErrCode(err)) {
 									if (err.code === 'EADDRNOTAVAIL')
 										return end(RFC_1928_REPLIES.HOST_UNREACHABLE, args);
 									else if (err.code === 'ECONNREFUSED')
@@ -294,13 +310,13 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 		 * +----+----------+----------+
 		 * | 1  |    1     | 1 to 255 |
 		 * +----+----------+----------+
-		 *
-		 * @param {Buffer} buffer - a buffer
-		 * @returns {undefined}
 		 **/
-		const handshake = (buffer) => {
-			binary
-				.stream(buffer)
+		const handshake = (buffer: Buffer) => {
+			stream<{
+				ver?: any;
+				methods?: any;
+				requestBuffer?: Buffer | undefined;
+			}>(buffer)
 				.word8('ver')
 				.word8('nmethods')
 				.buffer('methods', 'nmethods')
@@ -316,7 +332,8 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 						.reduce((methods, method) => {
 							methods[method] = true;
 							return methods;
-						}, {});
+						}, {} as Record<string, boolean>);
+
 					const basicAuth = typeof options.authenticate === 'function';
 					let next = connect;
 					const noAuth =
