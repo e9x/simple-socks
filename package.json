@@ -4,7 +4,9 @@
   "description": "SOCKS proxy server written in TypeScript",
   "type": "commonjs",
   "main": "dist/index.js",
-  "engine": "node >= 12",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch"
