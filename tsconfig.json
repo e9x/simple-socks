@@ -1,16 +1,16 @@
 {
-	"compilerOptions": {
-		"types": ["node"],
-		"lib": ["ESNext", "DOM"],
-		"target": "ESNext",
-		"module": "CommonJS",
-		"outDir": "dist",
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"moduleResolution": "node",
-		"baseUrl": "types",
-		"typeRoots": ["node_modules/@types", "types"],
-		"declaration": true,
-		"strict": true
-	}
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ESNext", "DOM"],
+    "target": "ESNext",
+    "module": "CommonJS",
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "baseUrl": "types",
+    "typeRoots": ["node_modules/@types", "types"],
+    "declaration": true,
+    "strict": true
+  }
 }

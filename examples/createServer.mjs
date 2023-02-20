@@ -1,4 +1,4 @@
-import { createProxyServer } from '../dist/index.js';
+import { createProxyServer } from "../dist/index.js";
 
 const server = createProxyServer();
 

@@ -41,7 +41,7 @@ DEBUG=simple-socks node examples/createServer.mjs
 In the [examples](examples/) folder exists two examples, one that requires no authentication and one that requires username/password authentication. Below is an example with no authentication:
 
 ```js
-import { createProxyServer } from '@e9x/simple-socks';
+import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer();
 
@@ -109,7 +109,7 @@ $ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 
 ```json
 {
-	"YourF***ingTorExit": true
+  "YourF***ingTorExit": true
 }
 ```
 
@@ -120,12 +120,12 @@ $ curl https://myip.wtf/json --socks5 127.0.0.1:1080
 Factory method that creates an instance of a SOCKS5 proxy server:
 
 ```js
-import { createProxyServer } from '@e9x/simple-socks';
+import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer();
 
-server.listen(1080, '0.0.0.0', () => {
-	console.log('SOCKS5 proxy server started on 0.0.0.0:1080');
+server.listen(1080, "0.0.0.0", () => {
+  console.log("SOCKS5 proxy server started on 0.0.0.0:1080");
 });
 ```
 
@@ -144,17 +144,17 @@ The return value is equivalent to [net.Server](https://nodejs.org/dist/latest-v1
 To make the socks5 server require username/password authentication, supply a function callback in the options as follows:
 
 ```js
-import { createProxyServer } from '@e9x/simple-socks';
+import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer({
-	authenticate: (username, password, socket) =>
-		new Promise((resolve, reject) => {
-			if (username === 'foo' && password === 'bar') {
-				return resolve();
-			}
+  authenticate: (username, password, socket) =>
+    new Promise((resolve, reject) => {
+      if (username === "foo" && password === "bar") {
+        return resolve();
+      }
 
-			return reject();
-		}),
+      return reject();
+    }),
 });
 
 // begin listening and require user/pass authentication
@@ -174,33 +174,33 @@ You must return a promise. The promise resolving indicates the credentials were 
 Allows you to filter incoming connections, based on either origin and/or destination.
 
 ```js
-import { createProxyServer } from '@e9x/simple-socks';
+import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer({
-	filter: (destinationPort, destinationAddress, socket) =>
-		new Promise((resolve, reject) => {
-			if (socket.remoteAddress === '127.0.0.1') {
-				console.log(
-					'denying access from %s:%s',
-					socket.remoteAddress,
-					socket.remotePort
-				);
+  filter: (destinationPort, destinationAddress, socket) =>
+    new Promise((resolve, reject) => {
+      if (socket.remoteAddress === "127.0.0.1") {
+        console.log(
+          "denying access from %s:%s",
+          socket.remoteAddress,
+          socket.remotePort
+        );
 
-				return reject();
-			}
+        return reject();
+      }
 
-			if (destinationAddress === '10.0.0.1') {
-				console.log(
-					'denying access to %s:%s',
-					destinationAddress,
-					destinationPort
-				);
+      if (destinationAddress === "10.0.0.1") {
+        console.log(
+          "denying access to %s:%s",
+          destinationAddress,
+          destinationPort
+        );
 
-				return reject();
-			}
+        return reject();
+      }
 
-			return resolve();
-		}),
+      return resolve();
+    }),
 });
 ```
 
@@ -219,27 +219,27 @@ You must return a promise. The promise resolving indicates the connection was ac
 Allows you to control the flow of connecting to the remote.
 
 ```js
-import { createProxyServer } from '@e9x/simple-socks';
-import { SocksClient } from 'socks';
+import { createProxyServer } from "@e9x/simple-socks";
+import { SocksClient } from "socks";
 
 const server = createProxyServer({
-	connect: async (port, host) => {
-		// connect to TOR socks proxy
-		const { socket } = await SocksClient.createConnection({
-			proxy: {
-				host: '127.0.0.1',
-				port: 9050, // TOR daemon
-				type: 5,
-			},
-			command: 'connect',
-			destination: {
-				port,
-				host,
-			},
-		});
+  connect: async (port, host) => {
+    // connect to TOR socks proxy
+    const { socket } = await SocksClient.createConnection({
+      proxy: {
+        host: "127.0.0.1",
+        port: 9050, // TOR daemon
+        type: 5,
+      },
+      command: "connect",
+      destination: {
+        port,
+        host,
+      },
+    });
 
-		return socket;
-	},
+    return socket;
+  },
 });
 ```
 
@@ -258,42 +258,42 @@ You must return a promise. The promise resolving indicates the connection was ac
 Method that will wait for a socket to connect to help use unconnected sockets as the resolution for [connect](#connect):
 
 ```js
-import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
-import { connect } from 'node:net';
+import { createProxyServer, waitForConnect } from "@e9x/simple-socks";
+import { connect } from "node:net";
 
 const server = createProxyServer({
-	connect: async (port, host) => {
-		// create unconnected socket
-		const socket = connect(port, host);
+  connect: async (port, host) => {
+    // create unconnected socket
+    const socket = connect(port, host);
 
-		await waitForConnect(socket);
+    await waitForConnect(socket);
 
-		return socket;
-	},
+    return socket;
+  },
 });
 ```
 
 (non-async)
 
 ```js
-import { createProxyServer, waitForConnect } from '@e9x/simple-socks';
-import { connect } from 'node:net';
+import { createProxyServer, waitForConnect } from "@e9x/simple-socks";
+import { connect } from "node:net";
 
 const server = createProxyServer({
-	connect: (port, host) =>
-		new Promise((resolve, reject) => {
-			// create unconnected socket
-			const socket = connect(port, host);
+  connect: (port, host) =>
+    new Promise((resolve, reject) => {
+      // create unconnected socket
+      const socket = connect(port, host);
 
-			waitForConnect(socket)
-				.then(() => {
-					resolve(socket);
-				})
-				.catch((err) => {
-					// only err should be passed to reject
-					reject(err);
-				});
-		}),
+      waitForConnect(socket)
+        .then(() => {
+          resolve(socket);
+        })
+        .catch((err) => {
+          // only err should be passed to reject
+          reject(err);
+        });
+    }),
 });
 ```
 
