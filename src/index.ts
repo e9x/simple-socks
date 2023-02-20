@@ -10,7 +10,8 @@ import {
 } from "./constants.js";
 import { stream } from "binary";
 import debug from "debug";
-import net from "node:net";
+import type { Socket, Server } from "node:net";
+import { connect, createServer } from "node:net";
 
 const debugOutput = debug("simple-socks");
 
@@ -18,7 +19,7 @@ const debugOutput = debug("simple-socks");
  *
  * @param socket Socket that emits the `connect` event upon connection, and the `error` event upon failure. Socket must be in the connecting state and not already connected. The promise will resolve once the socket is connected and will reject if an error occurs before a connection is established.
  */
-export const waitForConnect = <T extends net.Socket>(socket: T) =>
+export const waitForConnect = <T extends Socket>(socket: T) =>
   new Promise<void>((resolve, reject) => {
     const connectHandler = () => {
       socket.removeListener("error", errorHandler);
@@ -41,13 +42,13 @@ export interface ProxyServerOptions {
   authenticate?(
     username: string,
     password: string,
-    socket: net.Socket
+    socket: Socket
   ): Promise<void>;
   /**
    * Determine if the connection to the destination is allowed.
    * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
    */
-  filter?(port: number, host: string, socket: net.Socket): Promise<void>;
+  filter?(port: number, host: string, socket: Socket): Promise<void>;
   /**
    * This is intended for slightly higher APIs.
    * What will work:
@@ -57,7 +58,7 @@ export interface ProxyServerOptions {
    * - Wrapping sockets in TLS to services that don't support TLS
    * @returns You must bind the `connect` and `error` events to resolve/reject. Once the promise is resolved, it is assumed that the socket is connected. Returning a normal socket will assume it is not connected already. If your API provides the `connect` and `error` event, you can use our built-in promise wrapper `waitForConnect`.
    */
-  connect(port: number, host: string, socket: net.Socket): Promise<net.Socket>;
+  connect(port: number, host: string, socket: Socket): Promise<Socket>;
 }
 
 function isErrCode(err: unknown): err is { code: string } {
@@ -75,8 +76,8 @@ function isErrCode(err: unknown): err is { code: string } {
  * https://www.ietf.org/rfc/rfc1929.txt - USERNAME/PASSWORD SOCKS5
  *
  **/
-function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
-  const activeSessions: net.Socket[] = [];
+function addProxyListeners(server: Server, options: ProxyServerOptions) {
+  const activeSessions: Socket[] = [];
 
   server.on("connection", (socket) => {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -419,17 +420,17 @@ function addProxyListeners(server: net.Server, options: ProxyServerOptions) {
 
 export function createProxyServer(
   partialOptions: Partial<ProxyServerOptions> = {}
-): net.Server {
+): Server {
   // stub connect
   if (!partialOptions.connect)
     partialOptions.connect = async (port, host) => {
-      const socket = net.connect(port, host);
+      const socket = connect(port, host);
       // let the server catch any errors
       await waitForConnect(socket);
       return socket;
     };
 
-  const server = net.createServer();
+  const server = createServer();
 
   addProxyListeners(server, <ProxyServerOptions>partialOptions);
 
