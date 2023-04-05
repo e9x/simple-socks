@@ -43,12 +43,12 @@ export interface ProxyServerOptions {
     username: string,
     password: string,
     socket: Socket
-  ): Promise<void>;
+  ): Promise<void> | void;
   /**
    * Determine if the connection to the destination is allowed.
    * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
    */
-  filter?(port: number, host: string, socket: Socket): Promise<void>;
+  filter?(port: number, host: string, socket: Socket): Promise<void> | void;
   /**
    * This is intended for slightly higher APIs.
    * What will work:
@@ -58,7 +58,7 @@ export interface ProxyServerOptions {
    * - Wrapping sockets in TLS to services that don't support TLS
    * @returns You must bind the `connect` and `error` events to resolve/reject. Once the promise is resolved, it is assumed that the socket is connected. Returning a normal socket will assume it is not connected already. If your API provides the `connect` and `error` event, you can use our built-in promise wrapper `waitForConnect`.
    */
-  connect(port: number, host: string, socket: Socket): Promise<Socket>;
+  connect(port: number, host: string, socket: Socket): Promise<Socket> | Socket;
 }
 
 function isErrCode(err: unknown): err is { code: string } {
