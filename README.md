@@ -147,14 +147,8 @@ To make the socks5 server require username/password authentication, supply a fun
 import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer({
-  authenticate: (username, password, socket) =>
-    new Promise((resolve, reject) => {
-      if (username === "foo" && password === "bar") {
-        return resolve();
-      }
-
-      return reject();
-    }),
+  authenticate: (username, password) =>
+    username === "foo" && password === "bar",
 });
 
 // begin listening and require user/pass authentication
@@ -167,7 +161,7 @@ The `authenticate` callback accepts three arguments:
 - password - password of the proxy user
 - socket - the socket for the client connection
 
-You must return a promise. The promise resolving indicates the credentials were accepted. The promise rejecting indicates the credentials were rejected.
+You must return a promise. The promise resolving true indicates the credentials were accepted. The promise resolving false indicates the credentials were rejected.
 
 #### filter
 
@@ -177,30 +171,29 @@ Allows you to filter incoming connections, based on either origin and/or destina
 import { createProxyServer } from "@e9x/simple-socks";
 
 const server = createProxyServer({
-  filter: (destinationPort, destinationAddress, socket) =>
-    new Promise((resolve, reject) => {
-      if (socket.remoteAddress === "127.0.0.1") {
-        console.log(
-          "denying access from %s:%s",
-          socket.remoteAddress,
-          socket.remotePort
-        );
+  filter: (destinationPort, destinationAddress, socket) => {
+    if (socket.remoteAddress === "127.0.0.1") {
+      console.log(
+        "denying access from %s:%s",
+        socket.remoteAddress,
+        socket.remotePort
+      );
 
-        return reject();
-      }
+      return false;
+    }
 
-      if (destinationAddress === "10.0.0.1") {
-        console.log(
-          "denying access to %s:%s",
-          destinationAddress,
-          destinationPort
-        );
+    if (destinationAddress === "10.0.0.1") {
+      console.log(
+        "denying access to %s:%s",
+        destinationAddress,
+        destinationPort
+      );
 
-        return reject();
-      }
+      return false;
+    }
 
-      return resolve();
-    }),
+    return true;
+  },
 });
 ```
 
@@ -212,7 +205,7 @@ The `filter` callback accepts three arguments:
 
 For an example, see [examples/createServerFilter.mjs](examples/createServerFilter.mjs).
 
-You must return a promise. The promise resolving indicates the connection was accepted. The promsie rejecting indicates the connection was rejected.
+You must return a promise. The promise resolving true indicates the connection was accepted. The promise resolving false indicates the connection was rejected.
 
 #### connect
 
@@ -251,7 +244,7 @@ The `connect` callback accepts three arguments:
 
 For an example, see [examples/createServerConnect.mjs](examples/createServerFilter.mjs).
 
-You must return a promise. The promise resolving indicates the connection was accepted **and is CONNECTED**. The promsie rejecting indicates the connection was rejected **and was NOT connected**. You can utilize [waitForConnect](#waitforconnect) to wait for the socket to connect/throw before resolving to make it compatible with this callback.
+You must return a promise. The promise resolving true indicates the connection was accepted **and is CONNECTED**. The promise resolving false indicates the connection was rejected **and was NOT connected**. You can utilize [waitForConnect](#waitforconnect) to wait for the socket to connect/throw before resolving to make it compatible with this callback.
 
 ### waitForConnect
 

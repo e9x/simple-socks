@@ -17,8 +17,10 @@ const server = createProxyServer({
         ip.toString()
       );
 
-      throw undefined;
+      return false;
     }
+
+    return true;
   },
 });
 

@@ -9,11 +9,8 @@ import {
   RFC_1929_VERSION,
 } from "./constants.js";
 import { stream } from "binary";
-import debug from "debug";
 import type { Socket, Server } from "node:net";
 import { connect, createServer } from "node:net";
-
-const debugOutput = debug("simple-socks");
 
 /**
  *
@@ -37,18 +34,22 @@ export const waitForConnect = <T extends Socket>(socket: T) =>
 
 export interface ProxyServerOptions {
   /**
-   * @returns A resolved promise indicates the credentials are correct and the proxy will proceed. A rejected promise indicates the credentials are incorrect and will result in the connection being closed.
+   * Determine if the connection to the destination is allowed.
+   * @returns If the return resolves to true, proxy will begin to authenticate. Otherwise, the connection conditions are not allowed and the connection will be ended.
+   */
+  filter?(
+    port: number,
+    host: string,
+    socket: Socket
+  ): Promise<boolean> | boolean;
+  /**
+   * @returns If the return resolves to true, the proxy will proceed. Otherwise, the credentials are incorrect and the connection will be ended.
    */
   authenticate?(
     username: string,
     password: string,
     socket: Socket
-  ): Promise<void> | void;
-  /**
-   * Determine if the connection to the destination is allowed.
-   * @returns A resolved promise indicates the connection is allowed and the proxy will proceed to the authentication phase. A rejected promise indicates the connection conditions are not allowed and will result in the connection being closed.
-   */
-  filter?(port: number, host: string, socket: Socket): Promise<void> | void;
+  ): Promise<boolean> | boolean;
   /**
    * This is intended for slightly higher APIs.
    * What will work:
@@ -56,7 +57,9 @@ export interface ProxyServerOptions {
    * - Redirecting to more secure services (80 -> 443, wrapped in tls.connect)
    * What will not work:
    * - Wrapping sockets in TLS to services that don't support TLS
-   * @returns You must bind the `connect` and `error` events to resolve/reject. Once the promise is resolved, it is assumed that the socket is connected. Returning a normal socket will assume it is not connected already. If your API provides the `connect` and `error` event, you can use our built-in promise wrapper `waitForConnect`.
+   * @returns You must bind the `connect` and `error` events to resolve/reject. Once the promise is resolved, it is assumed that the socket is connected. Returning a normal socket will assume it is not connected already.
+   *
+   * If your API provides the `connect` and `error` event, you can use our built-in promise wrapper `waitForConnect`.
    */
   connect(port: number, host: string, socket: Socket): Promise<Socket> | Socket;
 }
@@ -109,13 +112,13 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
 
           // perform authentication
           // options.authenticate is guaranteed to exist, connections providing authentication when options.authenticate doesnt exist will be terminated
-          try {
-            await options.authenticate!(
-              args.uname.toString(),
-              args.passwd.toString(),
-              socket
-            );
+          const auth = await options.authenticate!(
+            args.uname.toString(),
+            args.passwd.toString(),
+            socket
+          );
 
+          if (auth) {
             // respond with success...
             const responseBuffer = authenticateReply(
               RFC_1929_REPLIES.SUCCEEDED
@@ -126,9 +129,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
               // now listen for more details
               socket.once("data", connect);
             });
-          } catch (err) {
-            if (err) debugOutput("Caught authentication failure:", err);
-
+          } else {
             // respond with auth failure
             end(authenticateReply(RFC_1929_REPLIES.GENERAL_FAILURE));
           }
@@ -222,58 +223,55 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
         .tap(async (args) => {
           if (args.cmd === RFC_1928_COMMANDS.CONNECT) {
             // perform connection
-            try {
-              if (options.filter)
-                await options.filter(args.dst.port, args.dst.addr, socket);
-
-              try {
-                const destination = await options.connect(
-                  args.dst.port,
-                  args.dst.addr,
-                  socket
-                );
-
-                // we can modify the responseBuffer to inform the client of a new destination IP address and port
-                // but we can also just copy the request to confirm the original IP and port
-                // TODO: add/update a hook to allow changing the IP and port
-
-                // prepare a success response
-                const responseBuffer = Buffer.alloc(buffer.length);
-                buffer.copy(responseBuffer);
-                responseBuffer[1] = RFC_1928_REPLIES.SUCCEEDED;
-
-                // write acknowledgement to client...
-                socket.write(responseBuffer, () => {
-                  // listen for data bi-directionally
-                  destination.pipe(socket);
-                  socket.pipe(destination);
-                });
-              } catch (err) {
-                if (err) debugOutput("Caught connect callback failure:", err);
-
-                if (isErrCode(err)) {
-                  if (err.code === "EADDRNOTAVAIL")
-                    return endConnect(
-                      RFC_1928_REPLIES.HOST_UNREACHABLE,
-                      buffer
-                    );
-                  else if (err.code === "ECONNREFUSED")
-                    return endConnect(
-                      RFC_1928_REPLIES.CONNECTION_REFUSED,
-                      buffer
-                    );
-                }
-
-                return endConnect(RFC_1928_REPLIES.NETWORK_UNREACHABLE, buffer);
-              }
-            } catch (err) {
-              if (err) debugOutput("Caught filter callback failure:", err);
-
-              // respond with failure
-              return endConnect(
-                RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED,
-                buffer
+            if (options.filter) {
+              const filtered = await options.filter(
+                args.dst.port,
+                args.dst.addr,
+                socket
               );
+              // respond with failure
+              if (!filtered)
+                return endConnect(
+                  RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED,
+                  buffer
+                );
+            }
+
+            try {
+              const destination = await options.connect(
+                args.dst.port,
+                args.dst.addr,
+                socket
+              );
+
+              // we can modify the responseBuffer to inform the client of a new destination IP address and port
+              // but we can also just copy the request to confirm the original IP and port
+              // TODO: add/update a hook to allow changing the IP and port
+
+              // prepare a success response
+              const responseBuffer = Buffer.alloc(buffer.length);
+              buffer.copy(responseBuffer);
+              responseBuffer[1] = RFC_1928_REPLIES.SUCCEEDED;
+
+              // write acknowledgement to client...
+              socket.write(responseBuffer, () => {
+                // listen for data bi-directionally
+                destination.pipe(socket);
+                socket.pipe(destination);
+              });
+            } catch (err) {
+              if (isErrCode(err)) {
+                if (err.code === "EADDRNOTAVAIL")
+                  endConnect(RFC_1928_REPLIES.HOST_UNREACHABLE, buffer);
+                else if (err.code === "ECONNREFUSED")
+                  endConnect(RFC_1928_REPLIES.CONNECTION_REFUSED, buffer);
+                else if (err.code === "ETIMEDOUT")
+                  endConnect(RFC_1928_REPLIES.TTL_EXPIRED, buffer);
+                else endConnect(RFC_1928_REPLIES.NETWORK_UNREACHABLE, buffer);
+              } else {
+                endConnect(RFC_1928_REPLIES.NETWORK_UNREACHABLE, buffer);
+                throw err;
+              }
             }
           } else {
             // bind and udp associate commands
@@ -287,8 +285,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
       try {
         socket.end(response);
       } catch (err) {
-        debugOutput("Failure half-closing the client. Destroying stream...");
-
+        // debugOutput("Failure half-closing the client. Destroying stream...");
         socket.destroy();
       }
     };
@@ -326,8 +323,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
       try {
         socket.end(responseBuffer);
       } catch (err) {
-        debugOutput("Failure half-closing the client. Destroying stream...");
-
+        // debugOutput("Failure half-closing the client. Destroying stream...");
         socket.destroy();
       }
     };
@@ -342,8 +338,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
       try {
         socket.end(responseBuffer);
       } catch (err) {
-        debugOutput("Failure half-closing the client. Destroying stream...");
-
+        // debugOutput("Failure half-closing the client. Destroying stream...");
         socket.destroy();
       }
     };

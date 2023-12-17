@@ -52,8 +52,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
-    "binary": "^0.3.0",
-    "debug": "^4.3.4"
+    "binary": "^0.3.0"
   },
   "optionalDependencies": {
     "ipaddr.js": "^2.0.1",
