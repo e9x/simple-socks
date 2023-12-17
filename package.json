@@ -53,9 +53,5 @@
   },
   "dependencies": {
     "binary": "^0.3.0"
-  },
-  "optionalDependencies": {
-    "ipaddr.js": "^2.0.1",
-    "socks": "^2.7.0"
   }
 }

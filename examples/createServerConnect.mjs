@@ -1,3 +1,4 @@
+// npm i socks
 import { createProxyServer } from "../dist/index.js";
 import { SocksClient } from "socks";
 
