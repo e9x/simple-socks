@@ -16,7 +16,7 @@ const server = createProxyServer({
         console.log(
           "Not allowing connection to %s:%s",
           destinationAddress,
-          destinationPort
+          destinationPort,
         );
 
         return false;
@@ -34,7 +34,7 @@ const server = createProxyServer({
         console.log(
           "Not allowing connection to %s:%s",
           destinationAddress,
-          destinationPort
+          destinationPort,
         );
 
         return false;

@@ -176,7 +176,7 @@ const server = createProxyServer({
       console.log(
         "denying access from %s:%s",
         socket.remoteAddress,
-        socket.remotePort
+        socket.remotePort,
       );
 
       return false;
@@ -186,7 +186,7 @@ const server = createProxyServer({
       console.log(
         "denying access to %s:%s",
         destinationAddress,
-        destinationPort
+        destinationPort,
       );
 
       return false;

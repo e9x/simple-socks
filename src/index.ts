@@ -40,7 +40,7 @@ export interface ProxyServerOptions {
   filter?(
     port: number,
     host: string,
-    socket: Socket
+    socket: Socket,
   ): Promise<boolean> | boolean;
   /**
    * @returns If the return resolves to true, the proxy will proceed. Otherwise, the credentials are incorrect and the connection will be ended.
@@ -48,7 +48,7 @@ export interface ProxyServerOptions {
   authenticate?(
     username: string,
     password: string,
-    socket: Socket
+    socket: Socket,
   ): Promise<boolean> | boolean;
   /**
    * This is intended for slightly higher APIs.
@@ -115,13 +115,13 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
           const auth = await options.authenticate!(
             args.uname.toString(),
             args.passwd.toString(),
-            socket
+            socket,
           );
 
           if (auth) {
             // respond with success...
             const responseBuffer = authenticateReply(
-              RFC_1929_REPLIES.SUCCEEDED
+              RFC_1929_REPLIES.SUCCEEDED,
             );
 
             // respond then listen for cmd and dst info
@@ -213,7 +213,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
           } else {
             return endConnect(
               RFC_1928_REPLIES.ADDRESS_TYPE_NOT_SUPPORTED,
-              buffer
+              buffer,
             );
           }
 
@@ -227,13 +227,13 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
               const filtered = await options.filter(
                 args.dst.port,
                 args.dst.addr,
-                socket
+                socket,
               );
               // respond with failure
               if (!filtered)
                 return endConnect(
                   RFC_1928_REPLIES.CONNECTION_NOT_ALLOWED,
-                  buffer
+                  buffer,
                 );
             }
 
@@ -241,7 +241,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
               const destination = await options.connect(
                 args.dst.port,
                 args.dst.addr,
-                socket
+                socket,
               );
 
               // we can modify the responseBuffer to inform the client of a new destination IP address and port
@@ -373,7 +373,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
           const noAuth =
             !basicAuth &&
             typeof acceptedMethods.includes(
-              RFC_1928_METHODS.NO_AUTHENTICATION_REQUIRED
+              RFC_1928_METHODS.NO_AUTHENTICATION_REQUIRED,
             );
 
           const responseBuffer = Buffer.allocUnsafe(2);
@@ -414,7 +414,7 @@ function addProxyListeners(server: Server, options: ProxyServerOptions) {
 }
 
 export function createProxyServer(
-  partialOptions: Partial<ProxyServerOptions> = {}
+  partialOptions: Partial<ProxyServerOptions> = {},
 ): Server {
   // stub connect
   if (!partialOptions.connect)

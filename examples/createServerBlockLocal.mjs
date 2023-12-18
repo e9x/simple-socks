@@ -14,7 +14,7 @@ const server = createProxyServer({
       console.log(
         socket.remoteAddress,
         "just attempted to connect to non-unicast (local) IP:",
-        ip.toString()
+        ip.toString(),
       );
 
       return false;
