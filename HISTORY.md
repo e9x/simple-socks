@@ -1,5 +1,11 @@
 @e9x/simple-socks:
 
+# v1.0.0 - 2023/12/17
+
+- Refactor callbacks
+
+# v1.0.0-beta.1 - 2022/08/25
+
 # v1.0.0-beta.0 - 2022/08/11
 
 - Port to TypeScript
